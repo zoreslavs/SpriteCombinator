@@ -13,6 +13,8 @@ public class ImageGenerator : MonoBehaviour
 	private string[] items;
 	private string[] acessories;
 
+	Texture2D _mainTexture;
+	Texture2D _tempTexture;
 	private string resultDirPath;
 	private int maxImagesCount;
 	private int curImagesCount;
@@ -75,9 +77,14 @@ public class ImageGenerator : MonoBehaviour
 								if (curImagesCount > targetImagesCount)
 									break;
 
-								GenerateImage(images[0][i1], images[1][i2], images[2][i3], images[3][i4], images[4][i5]);
+								yield return GenerateImage(images[0][i1], images[1][i2], images[2][i3], images[3][i4], images[4][i5]);
 
-								yield return new WaitForSeconds(2f);
+								if (curImagesCount % 10 == 0)
+								{
+									Resources.UnloadUnusedAssets();
+									GC.Collect();
+									yield return new WaitForSeconds(1f);
+								}
 							}
 						}
 					}
@@ -86,25 +93,69 @@ public class ImageGenerator : MonoBehaviour
 		}
 	}
 
-	private void GenerateImage(string backgroud, string body, string shirt, string item, string acessory)
+	private bool GenerateImage(string backgroud, string body, string shirt, string item, string acessory)
 	{
-		Texture2D texture1 = ImageHelper.AlphaBlend(GetTexture(backgroud), GetTexture(shirt));
-		Texture2D texture2 = ImageHelper.AlphaBlend(texture1, GetTexture(body));
-		Texture2D texture3 = ImageHelper.AlphaBlend(texture2, GetTexture(item));
-		Texture2D texture4 = ImageHelper.AlphaBlend(texture3, GetTexture(acessory));
+		_mainTexture = AlphaBlend(AlphaBlend(AlphaBlend(AlphaBlend(
+			GetTexture(backgroud),
+			GetTexture(shirt)),
+			GetTexture(body)),
+			GetTexture(item)),
+			GetTexture(acessory));
 
 		string resultPath = Path.Combine(resultDirPath + "/"+ curImagesCount.ToString() + ".png");
-		File.WriteAllBytes(resultPath, texture4.EncodeToPNG());
+		File.WriteAllBytes(resultPath, _mainTexture.EncodeToPNG());
 
 		onImageGenerated.Invoke(curImagesCount);
+
+		return true;
+	}
+	
+	private Texture2D AlphaBlend(Texture2D aBottom, Texture2D aTop)
+	{
+		if (aBottom.width != aTop.width || aBottom.height != aTop.height)
+			throw new System.InvalidOperationException("AlphaBlend only works with two equal sized images");
+
+		if (_mainTexture == null)
+		{
+			_mainTexture = new Texture2D(aTop.width, aTop.height);
+			_mainTexture.hideFlags = HideFlags.HideAndDontSave;
+		}
+
+		var bData = aBottom.GetPixels();
+		var tData = aTop.GetPixels();
+		int count = bData.Length;
+		var rData = new Color[count];
+
+		for (int i = 0; i < count; i++)
+		{
+			Color B = bData[i];
+			Color T = tData[i];
+			float srcF = T.a;
+			float destF = 1f - T.a;
+			float alpha = srcF + destF * B.a;
+			Color R = (T * srcF + B * B.a * destF) / alpha;
+			R.a = alpha;
+			rData[i] = R;
+		}
+
+		_mainTexture.SetPixels(rData);
+		_mainTexture.Apply();
+
+		return _mainTexture;
 	}
 
 	private Texture2D GetTexture(string imagePath)
     {
-		Texture2D texture = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
-		texture.LoadImage(File.ReadAllBytes(imagePath));
+		if (_tempTexture != null)
+        {
+			Destroy(_tempTexture);
+			_tempTexture = null;
+		}
 
-		return texture;
+		_tempTexture = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
+		_tempTexture.LoadImage(File.ReadAllBytes(imagePath));
+
+		return _tempTexture;
 	}
 
 	public int GetMaxImagesCount() { return maxImagesCount; }

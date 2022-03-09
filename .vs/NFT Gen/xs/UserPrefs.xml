@@ -1,18 +1,13 @@
 ﻿<Properties StartupConfiguration="{B5EEC080-2FFF-86E4-7164-8CEBF50C5330}|">
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/UI/MainScreen.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/Generator/ImageGenerator.cs">
     <Files>
-      <File FileName="Assets/StandaloneFileBrowser/Sample/BasicSample.cs" Line="53" Column="13" />
-      <File FileName="Assets/Scripts/Helper/PathHelper.cs" Line="5" Column="58" />
-      <File FileName="Assets/Scripts/UI/ProgressBar.cs" Line="26" Column="1" />
-      <File FileName="Assets/Scripts/UI/PathButton.cs" Line="11" Column="1" />
-      <File FileName="Assets/Scripts/UI/MainScreen.cs" Line="5" Column="40" />
-      <File FileName="Assets/Scripts/UI/ProcessingScreen.cs" Line="37" Column="38" />
-      <File FileName="Assets/Scripts/Generator/ImageGenerator.cs" Line="30" Column="25" />
+      <File FileName="Assets/StandaloneFileBrowser/Sample/BasicSample.cs" />
+      <File FileName="Assets/Scripts/Generator/ImageGenerator.cs" Line="154" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.ItemProperties.Assembly-CSharp PreferredExecutionTarget="36d2d842-7f2b-4d4c-b87a-9054a359e465" />
+  <MonoDevelop.Ide.ItemProperties.Assembly-CSharp PreferredExecutionTarget="a6cd8238-0565-4c07-b8d6-bbb2ad0dc3ef" />
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>

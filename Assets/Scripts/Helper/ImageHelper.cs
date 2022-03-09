@@ -25,6 +25,7 @@ public static class ImageHelper
         }
 
         var res = new Texture2D(aTop.width, aTop.height);
+        res.hideFlags = HideFlags.HideAndDontSave;
         res.SetPixels(rData);
         res.Apply();
         return res;
