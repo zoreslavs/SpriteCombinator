@@ -60,25 +60,25 @@ ScriptsOnlyBuild:
     - Class: 114
       Script: {instanceID: 11528}
     - Class: 114
-      Script: {instanceID: 12200}
+      Script: {instanceID: 11948}
     - Class: 114
-      Script: {instanceID: 12352}
+      Script: {instanceID: 12202}
     - Class: 114
-      Script: {instanceID: 12720}
+      Script: {instanceID: 12354}
     - Class: 114
-      Script: {instanceID: 12918}
+      Script: {instanceID: 12722}
     - Class: 114
-      Script: {instanceID: 13208}
+      Script: {instanceID: 12920}
     - Class: 114
-      Script: {instanceID: 13678}
+      Script: {instanceID: 13070}
     - Class: 114
-      Script: {instanceID: 13988}
+      Script: {instanceID: 13212}
     - Class: 114
-      Script: {instanceID: 14294}
+      Script: {instanceID: 13682}
     - Class: 114
-      Script: {instanceID: 14902}
+      Script: {instanceID: 13994}
     - Class: 114
-      Script: {instanceID: 47010}
+      Script: {instanceID: 14300}
     - Class: 115
       Script: {instanceID: 0}
     - Class: 128
@@ -272,6 +272,12 @@ ScriptsOnlyBuild:
     className: PixelPerfectCamera
   - hash:
       serializedVersion: 2
+      Hash: 6f3b3abc79f6b6cd34d37b0d844de628
+    assemblyName: Assembly-CSharp.dll
+    namespaceName: 
+    className: ProgressBar
+  - hash:
+      serializedVersion: 2
       Hash: 5ab533713adae59372fb3e10a585c186
     assemblyName: Unity.Timeline.dll
     namespaceName: UnityEngine.Timeline
@@ -426,6 +432,12 @@ ScriptsOnlyBuild:
     assemblyName: UnityEngine.UI.dll
     namespaceName: UnityEngine.UI
     className: VerticalLayoutGroup
+  - hash:
+      serializedVersion: 2
+      Hash: 659364ce4112604bf0dd1272511c23b9
+    assemblyName: Assembly-CSharp.dll
+    namespaceName: 
+    className: ProcessingScreen
   - hash:
       serializedVersion: 2
       Hash: 71b711096c6c32621c1d4c02310898b7
@@ -630,18 +642,6 @@ ScriptsOnlyBuild:
     assemblyName: Unity.Timeline.dll
     namespaceName: UnityEngine.Timeline
     className: PlayableTrack
-  - hash:
-      serializedVersion: 2
-      Hash: 6f3b3abc79f6b6cd34d37b0d844de628
-    assemblyName: Assembly-CSharp.dll
-    namespaceName: 
-    className: ProgressBar
-  - hash:
-      serializedVersion: 2
-      Hash: 659364ce4112604bf0dd1272511c23b9
-    assemblyName: Assembly-CSharp.dll
-    namespaceName: 
-    className: ProcessingScreen
   platform: 2
   scenePathNames:
   - Assets/Scenes/Main Scene.unity
