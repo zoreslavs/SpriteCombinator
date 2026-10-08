@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Collections;
 using UnityEngine;
 using System.IO;
@@ -6,157 +6,169 @@ using System;
 
 public class ImageGenerator : MonoBehaviour
 {
-	private List<string[]> images;
-	private string[] backgrounds;
-	private string[] bodies;
-	private string[] shirts;
-	private string[] items;
-	private string[] acessories;
+    private List<string[]> layers = new List<string[]>();
 
-	Texture2D _mainTexture;
-	Texture2D _tempTexture;
-	private string resultDirPath;
-	private int maxImagesCount;
-	private int curImagesCount;
-	private int targetImagesCount;
+    private Texture2D _resultTexture;
+    private Texture2D _tempTexture;
+    private string resultDirPath;
+    private int maxImagesCount;
+    private int curImagesCount;
+    private int targetImagesCount;
 
-	public event Action<int> onImageGenerated;
+    public event Action<int> onImageGenerated;
 
-	private void Awake()
+    public void SetLayerImages(int index, string[] images)
     {
-		images = new List<string[]> { backgrounds, bodies, shirts, items, acessories };
-	}
-
-    public void SetImageList(int index, string[] items)
-    {
-		images[index] = items;
-
-		maxImagesCount = 1;
-		foreach (var item in images)
+        while (layers.Count <= index)
         {
-			if (item != null)
-				maxImagesCount *= item.Length;
-		}
-	}
+            layers.Add(null);
+        }
 
-	public void Generate(int numImages, string resultPath)
-	{
-		curImagesCount = 0;
-		targetImagesCount = numImages;
-		resultDirPath = resultPath;
+        layers[index] = images;
+        RecalculateMaxCount();
+    }
 
-		//processingScreen.UpdateProgress(curImagesCount, targetImagesCount);
-
-		RandomizeImagePaths();
-		StartCoroutine(GenerateImages());
-	}
-
-	private void RandomizeImagePaths()
+    public void Generate(int numImages, string resultPath)
     {
-		foreach (var item in images)
-		{
-			ShuffleHelper.Shuffle(item);
-		}
-	}
+        curImagesCount = 0;
+        targetImagesCount = numImages;
+        resultDirPath = resultPath;
 
-	private IEnumerator GenerateImages()
+        RandomizeLayerOrder();
+        StartCoroutine(GenerateImages());
+    }
+
+    private void RandomizeLayerOrder()
     {
-		for (int i = 0; i < images.Count; i++)
-		{
-			for (int i1 = 0; i1 < images[0].Length; i1++)
-			{
-				for (int i2 = 0; i2 < images[1].Length; i2++)
-				{
-					for (int i3 = 0; i3 < images[2].Length; i3++)
-					{
-						for (int i4 = 0; i4 < images[3].Length; i4++)
-						{
-							for (int i5 = 0; i5 < images[4].Length; i5++)
-							{
-								curImagesCount++;
-								if (curImagesCount > targetImagesCount)
-									break;
-
-								yield return GenerateImage(images[0][i1], images[1][i2], images[2][i3], images[3][i4], images[4][i5]);
-
-								if (curImagesCount % 10 == 0)
-								{
-									Resources.UnloadUnusedAssets();
-									GC.Collect();
-									yield return new WaitForSeconds(1f);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	private bool GenerateImage(string backgroud, string body, string shirt, string item, string acessory)
-	{
-		_mainTexture = AlphaBlend(AlphaBlend(AlphaBlend(AlphaBlend(
-			GetTexture(backgroud),
-			GetTexture(shirt)),
-			GetTexture(body)),
-			GetTexture(item)),
-			GetTexture(acessory));
-
-		string resultPath = Path.Combine(resultDirPath + "/"+ curImagesCount.ToString() + ".png");
-		File.WriteAllBytes(resultPath, _mainTexture.EncodeToPNG());
-
-		onImageGenerated.Invoke(curImagesCount);
-
-		return true;
-	}
-	
-	private Texture2D AlphaBlend(Texture2D aBottom, Texture2D aTop)
-	{
-		if (aBottom.width != aTop.width || aBottom.height != aTop.height)
-			throw new System.InvalidOperationException("AlphaBlend only works with two equal sized images");
-
-		if (_mainTexture == null)
-		{
-			_mainTexture = new Texture2D(aTop.width, aTop.height);
-			_mainTexture.hideFlags = HideFlags.HideAndDontSave;
-		}
-
-		var bData = aBottom.GetPixels();
-		var tData = aTop.GetPixels();
-		int count = bData.Length;
-		var rData = new Color[count];
-
-		for (int i = 0; i < count; i++)
-		{
-			Color B = bData[i];
-			Color T = tData[i];
-			float srcF = T.a;
-			float destF = 1f - T.a;
-			float alpha = srcF + destF * B.a;
-			Color R = (T * srcF + B * B.a * destF) / alpha;
-			R.a = alpha;
-			rData[i] = R;
-		}
-
-		_mainTexture.SetPixels(rData);
-		_mainTexture.Apply();
-
-		return _mainTexture;
-	}
-
-	private Texture2D GetTexture(string imagePath)
-    {
-		if (_tempTexture != null)
+        foreach (var layer in layers)
         {
-			Destroy(_tempTexture);
-			_tempTexture = null;
-		}
+            if (layer != null)
+            {
+                ShuffleHelper.Shuffle(layer);
+            }
+        }
+    }
 
-		_tempTexture = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
-		_tempTexture.LoadImage(File.ReadAllBytes(imagePath));
+    private IEnumerator GenerateImages()
+    {
+        var activeLayers = new List<string[]>();
+        foreach (var layer in layers)
+        {
+            if (layer != null && layer.Length > 0)
+            {
+                activeLayers.Add(layer);
+            }
+        }
 
-		return _tempTexture;
-	}
+        if (activeLayers.Count == 0)
+        {
+            yield break;
+        }
 
-	public int GetMaxImagesCount() { return maxImagesCount; }
+        int[] indices = new int[activeLayers.Count];
+
+        while (true)
+        {
+            curImagesCount++;
+            if (curImagesCount > targetImagesCount)
+            {
+                break;
+            }
+
+            string[] paths = new string[activeLayers.Count];
+            for (int i = 0; i < activeLayers.Count; i++)
+            {
+                paths[i] = activeLayers[i][indices[i]];
+            }
+
+            GenerateImage(paths);
+
+            if (curImagesCount % 10 == 0)
+            {
+                Resources.UnloadUnusedAssets();
+                GC.Collect();
+                yield return new WaitForSeconds(1f);
+            }
+
+            int carry = activeLayers.Count - 1;
+            while (carry >= 0)
+            {
+                indices[carry]++;
+                if (indices[carry] < activeLayers[carry].Length)
+                {
+                    break;
+                }
+                indices[carry] = 0;
+                carry--;
+            }
+
+            if (carry < 0)
+            {
+                break;
+            }
+        }
+    }
+
+    private void GenerateImage(string[] layerPaths)
+    {
+        LoadTexture(layerPaths[0], ref _resultTexture);
+
+        for (int i = 1; i < layerPaths.Length; i++)
+        {
+            LoadTexture(layerPaths[i], ref _tempTexture);
+            AlphaBlend(_resultTexture, _tempTexture);
+        }
+
+        string resultPath = Path.Combine(resultDirPath, curImagesCount + ".png");
+        File.WriteAllBytes(resultPath, _resultTexture.EncodeToPNG());
+
+        onImageGenerated?.Invoke(curImagesCount);
+    }
+
+    private void AlphaBlend(Texture2D bottom, Texture2D top)
+    {
+        var bData = bottom.GetPixels();
+        var tData = top.GetPixels();
+        int count = bData.Length;
+
+        for (int i = 0; i < count; i++)
+        {
+            Color b = bData[i];
+            Color t = tData[i];
+            float srcF = t.a;
+            float destF = 1f - t.a;
+            float alpha = srcF + destF * b.a;
+            Color r = (t * srcF + b * b.a * destF) / alpha;
+            r.a = alpha;
+            bData[i] = r;
+        }
+
+        bottom.SetPixels(bData);
+        bottom.Apply();
+    }
+
+    private void LoadTexture(string imagePath, ref Texture2D texture)
+    {
+        if (texture == null)
+        {
+            texture = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
+            texture.hideFlags = HideFlags.HideAndDontSave;
+        }
+
+        texture.LoadImage(File.ReadAllBytes(imagePath));
+    }
+
+    public int GetMaxImagesCount() => maxImagesCount;
+
+    private void RecalculateMaxCount()
+    {
+        maxImagesCount = 1;
+        foreach (var layer in layers)
+        {
+            if (layer != null)
+            {
+                maxImagesCount *= layer.Length;
+            }
+        }
+    }
 }
