@@ -1,5 +1,6 @@
-﻿using UnityEngine.UI;
+using UnityEngine.UI;
 using UnityEngine;
+using System;
 
 public class ProcessingScreen : MonoBehaviour
 {
@@ -9,19 +10,22 @@ public class ProcessingScreen : MonoBehaviour
     [SerializeField] private Button closeButton;
     [SerializeField] private ProgressBar progressBar;
 
+    public event Action onClosed;
+
     private string initText;
 
     private void Awake()
     {
         initText = labelText.text;
-        resultText.text = folderText.text = "";
+        ResetScreen();
         gameObject.SetActive(false);
-        closeButton.gameObject.SetActive(false);
     }
 
     public void OnClose()
     {
-        Application.Quit();
+        ResetScreen();
+        gameObject.SetActive(false);
+        onClosed?.Invoke();
     }
 
     public void UpdateProgress(float currentCount, float targetCount)
@@ -37,5 +41,13 @@ public class ProcessingScreen : MonoBehaviour
         folderText.text = resultPath;
         progressBar.UpdateProgress(1);
         closeButton.gameObject.SetActive(true);
+    }
+
+    private void ResetScreen()
+    {
+        labelText.text = initText;
+        resultText.text = folderText.text = "";
+        closeButton.gameObject.SetActive(false);
+        progressBar.UpdateProgress(0);
     }
 }

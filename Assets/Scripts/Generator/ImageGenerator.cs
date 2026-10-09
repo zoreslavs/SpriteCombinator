@@ -6,66 +6,31 @@ using System;
 
 public class ImageGenerator : MonoBehaviour
 {
-    private List<string[]> layers = new List<string[]>();
-
     private Texture2D _resultTexture;
     private Texture2D _tempTexture;
     private string resultDirPath;
-    private int maxImagesCount;
     private int curImagesCount;
     private int targetImagesCount;
 
     public event Action<int> onImageGenerated;
 
-    public void SetLayerImages(int index, string[] images)
-    {
-        while (layers.Count <= index)
-        {
-            layers.Add(null);
-        }
-
-        layers[index] = images;
-        RecalculateMaxCount();
-    }
-
-    public void Generate(int numImages, string resultPath)
+    public void Generate(List<string[]> layers, int numImages, string resultPath)
     {
         curImagesCount = 0;
         targetImagesCount = numImages;
         resultDirPath = resultPath;
 
-        RandomizeLayerOrder();
-        StartCoroutine(GenerateImages());
-    }
-
-    private void RandomizeLayerOrder()
-    {
         foreach (var layer in layers)
         {
-            if (layer != null)
-            {
-                ShuffleHelper.Shuffle(layer);
-            }
+            ShuffleHelper.Shuffle(layer);
         }
+
+        StartCoroutine(GenerateImages(layers));
     }
 
-    private IEnumerator GenerateImages()
+    private IEnumerator GenerateImages(List<string[]> layers)
     {
-        var activeLayers = new List<string[]>();
-        foreach (var layer in layers)
-        {
-            if (layer != null && layer.Length > 0)
-            {
-                activeLayers.Add(layer);
-            }
-        }
-
-        if (activeLayers.Count == 0)
-        {
-            yield break;
-        }
-
-        int[] indices = new int[activeLayers.Count];
+        int[] indices = new int[layers.Count];
 
         while (true)
         {
@@ -75,10 +40,10 @@ public class ImageGenerator : MonoBehaviour
                 break;
             }
 
-            string[] paths = new string[activeLayers.Count];
-            for (int i = 0; i < activeLayers.Count; i++)
+            string[] paths = new string[layers.Count];
+            for (int i = 0; i < layers.Count; i++)
             {
-                paths[i] = activeLayers[i][indices[i]];
+                paths[i] = layers[i][indices[i]];
             }
 
             GenerateImage(paths);
@@ -90,11 +55,11 @@ public class ImageGenerator : MonoBehaviour
                 yield return new WaitForSeconds(1f);
             }
 
-            int carry = activeLayers.Count - 1;
+            int carry = layers.Count - 1;
             while (carry >= 0)
             {
                 indices[carry]++;
-                if (indices[carry] < activeLayers[carry].Length)
+                if (indices[carry] < layers[carry].Length)
                 {
                     break;
                 }
@@ -127,8 +92,17 @@ public class ImageGenerator : MonoBehaviour
 
     private void AlphaBlend(Texture2D bottom, Texture2D top)
     {
-        var bData = bottom.GetPixels();
-        var tData = top.GetPixels();
+        Color[] bData = bottom.GetPixels();
+        Color[] tData;
+        if (top.width == bottom.width && top.height == bottom.height)
+        {
+            tData = top.GetPixels();
+        }
+        else
+        {
+            tData = ScalePixels(top, bottom.width, bottom.height);
+        }
+
         int count = bData.Length;
 
         for (int i = 0; i < count; i++)
@@ -138,6 +112,13 @@ public class ImageGenerator : MonoBehaviour
             float srcF = t.a;
             float destF = 1f - t.a;
             float alpha = srcF + destF * b.a;
+
+            if (alpha <= 0f)
+            {
+                bData[i] = new Color(0f, 0f, 0f, 0f);
+                continue;
+            }
+
             Color r = (t * srcF + b * b.a * destF) / alpha;
             r.a = alpha;
             bData[i] = r;
@@ -147,28 +128,44 @@ public class ImageGenerator : MonoBehaviour
         bottom.Apply();
     }
 
+    private Color[] ScalePixels(Texture2D src, int dstWidth, int dstHeight)
+    {
+        Color[] srcData = src.GetPixels();
+        int srcWidth = src.width;
+        int srcHeight = src.height;
+        Color[] dstData = new Color[dstWidth * dstHeight];
+
+        for (int y = 0; y < dstHeight; y++)
+        {
+            float sy = (dstHeight <= 1) ? 0f : (float)y / (dstHeight - 1) * (srcHeight - 1);
+            int y0 = (int)sy;
+            int y1 = Mathf.Min(y0 + 1, srcHeight - 1);
+            float fy = sy - y0;
+
+            for (int x = 0; x < dstWidth; x++)
+            {
+                float sx = (dstWidth <= 1) ? 0f : (float)x / (dstWidth - 1) * (srcWidth - 1);
+                int x0 = (int)sx;
+                int x1 = Mathf.Min(x0 + 1, srcWidth - 1);
+                float fx = sx - x0;
+
+                Color c0 = Color.Lerp(srcData[y0 * srcWidth + x0], srcData[y0 * srcWidth + x1], fx);
+                Color c1 = Color.Lerp(srcData[y1 * srcWidth + x0], srcData[y1 * srcWidth + x1], fx);
+                dstData[y * dstWidth + x] = Color.Lerp(c0, c1, fy);
+            }
+        }
+
+        return dstData;
+    }
+
     private void LoadTexture(string imagePath, ref Texture2D texture)
     {
         if (texture == null)
         {
-            texture = new Texture2D(1, 1, TextureFormat.RGBAFloat, false);
+            texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             texture.hideFlags = HideFlags.HideAndDontSave;
         }
 
         texture.LoadImage(File.ReadAllBytes(imagePath));
-    }
-
-    public int GetMaxImagesCount() => maxImagesCount;
-
-    private void RecalculateMaxCount()
-    {
-        maxImagesCount = 1;
-        foreach (var layer in layers)
-        {
-            if (layer != null)
-            {
-                maxImagesCount *= layer.Length;
-            }
-        }
     }
 }

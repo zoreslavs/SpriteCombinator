@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections;
 using UnityEngine.UI;
 using UnityEngine;
@@ -5,74 +6,174 @@ using UnityEngine;
 public class MainScreen : MonoBehaviour
 {
     [SerializeField] private ImageGenerator imageGenerator;
-    [SerializeField] private PathButton[] pathButtons;
+    [SerializeField] private LayerEntry layerEntryPrefab;
+    [SerializeField] private Transform layerListContainer;
+    [SerializeField] private Button addLayerButton;
+    [SerializeField] private Button resultFolderButton;
+    [SerializeField] private Text resultFolderText;
     [SerializeField] private Button generateButton;
     [SerializeField] private Text maxCountText;
     [SerializeField] private InputField targetCountInput;
     [SerializeField] private ProcessingScreen processingScreen;
+    [SerializeField] private int initialLayerCount = 2;
+    [SerializeField] private int maxLayerCount = 10;
 
-    private string[] folderPaths;
+    private readonly List<LayerEntry> layers = new List<LayerEntry>();
     private string resultFolderPath;
     private int targetImagesCount;
 
     private void Awake()
     {
-        folderPaths = new string[pathButtons.Length];
+        addLayerButton.onClick.AddListener(AddLayer);
+        resultFolderButton.onClick.AddListener(SelectResultFolder);
+        generateButton.onClick.AddListener(OnGenerate);
+        imageGenerator.onImageGenerated += OnImageGenerated;
+        processingScreen.onClosed += RefreshState;
 
-        maxCountText.text = targetCountInput.text = "-";
-        targetCountInput.interactable = false;
-        generateButton.interactable = false;
-
-        foreach (var button in pathButtons)
+        for (int i = 0; i < initialLayerCount; i++)
         {
-            button.onPathSetEvent += OnFolderPathSet;
+            AddLayer();
         }
 
-        imageGenerator.onImageGenerated += OnImageGenerated;
+        RefreshState();
     }
 
     private void Update()
     {
-        if (!generateButton.interactable || !targetCountInput.interactable || targetCountInput.isFocused)
+        if (!targetCountInput.interactable || targetCountInput.isFocused)
         {
             return;
         }
 
-        int targetCount = int.Parse(targetCountInput.text);
-        if (targetCount < 1 || targetCount > imageGenerator.GetMaxImagesCount())
+        int maxCount = GetMaxImagesCount();
+        if (int.TryParse(targetCountInput.text, out int targetCount))
         {
-            targetCountInput.text = imageGenerator.GetMaxImagesCount().ToString();
+            if (targetCount < 1 || targetCount > maxCount)
+            {
+                targetCountInput.text = maxCount.ToString();
+            }
         }
     }
 
-    private void OnFolderPathSet(ImageType.Type type, string path, string[] items)
+    private void AddLayer()
     {
-        int index = (int)type;
-        if (type == ImageType.Type.NONE)
+        if (layers.Count >= maxLayerCount)
         {
-            resultFolderPath = path;
-            folderPaths[index] = path;
-        }
-        else if (items != null && items.Length > 0)
-        {
-            imageGenerator.SetLayerImages(index, items);
-            folderPaths[index] = path;
-        }
-        else
-        {
-            folderPaths[index] = null;
+            return;
         }
 
-        if (CheckAllFoldersSet())
+        LayerEntry entry = Instantiate(layerEntryPrefab, layerListContainer);
+        entry.onChanged += RefreshState;
+        entry.onRemoved += RemoveLayer;
+        layers.Add(entry);
+        UpdateLayerOrder();
+        RefreshState();
+    }
+
+    private void RemoveLayer(LayerEntry entry)
+    {
+        layers.Remove(entry);
+        Destroy(entry.gameObject);
+        UpdateLayerOrder();
+        RefreshState();
+    }
+
+    private void UpdateLayerOrder()
+    {
+        for (int i = 0; i < layers.Count; i++)
         {
-            maxCountText.text = targetCountInput.text = imageGenerator.GetMaxImagesCount().ToString();
-            generateButton.interactable = targetCountInput.interactable = true;
+            layers[i].SetDefaultName(i + 1);
+
+            string label;
+            if (layers.Count == 1)
+            {
+                label = "";
+            }
+            else if (i == 0)
+            {
+                label = "bottom";
+            }
+            else if (i == layers.Count - 1)
+            {
+                label = "top";
+            }
+            else
+            {
+                label = "";
+            }
+            layers[i].SetOrderLabel(label);
         }
-        else if (generateButton.interactable)
+    }
+
+    private void SelectResultFolder()
+    {
+        string path = FolderPicker.Open("Select Output Folder");
+        if (string.IsNullOrEmpty(path))
         {
-            maxCountText.text = targetCountInput.text = "-";
-            generateButton.interactable = targetCountInput.interactable = false;
+            return;
         }
+
+        resultFolderPath = path;
+        resultFolderText.text = path;
+        RefreshState();
+    }
+
+    private void RefreshState()
+    {
+        int maxCount = GetMaxImagesCount();
+        bool ready = maxCount > 0 && !string.IsNullOrEmpty(resultFolderPath);
+
+        maxCountText.text = ready ? maxCount.ToString() : "-";
+        targetCountInput.text = ready ? maxCount.ToString() : "-";
+        targetCountInput.interactable = ready;
+        generateButton.interactable = ready;
+        addLayerButton.interactable = layers.Count < maxLayerCount;
+    }
+
+    private int GetMaxImagesCount()
+    {
+        int count = 1;
+        int withImages = 0;
+        foreach (var layer in layers)
+        {
+            if (layer.HasImages)
+            {
+                count *= layer.Images.Length;
+                withImages++;
+            }
+        }
+        return withImages > 0 ? count : 0;
+    }
+
+    private void OnGenerate()
+    {
+        List<string[]> activeLayers = new List<string[]>();
+        foreach (var layer in layers)
+        {
+            if (layer.HasImages)
+            {
+                activeLayers.Add(layer.Images);
+            }
+        }
+
+        if (activeLayers.Count == 0)
+        {
+            return;
+        }
+
+        generateButton.interactable = false;
+        targetImagesCount = int.Parse(targetCountInput.text);
+
+        processingScreen.gameObject.SetActive(true);
+        processingScreen.UpdateProgress(1, targetImagesCount);
+
+        StartCoroutine(StartGeneration(activeLayers));
+    }
+
+    private IEnumerator StartGeneration(List<string[]> activeLayers)
+    {
+        yield return new WaitForSeconds(0.5f);
+        imageGenerator.Generate(activeLayers, targetImagesCount, resultFolderPath);
     }
 
     private void OnImageGenerated(int count)
@@ -85,34 +186,5 @@ public class MainScreen : MonoBehaviour
         {
             processingScreen.FinishProcessing(resultFolderPath);
         }
-    }
-
-    private bool CheckAllFoldersSet()
-    {
-        for (int i = 0; i < folderPaths.Length; i++)
-        {
-            if (folderPaths[i] == null)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public void OnGenerate()
-    {
-        generateButton.interactable = false;
-        targetImagesCount = int.Parse(targetCountInput.text);
-
-        processingScreen.gameObject.SetActive(true);
-        processingScreen.UpdateProgress(1, targetImagesCount);
-
-        StartCoroutine(GenerateImages());
-    }
-
-    private IEnumerator GenerateImages()
-    {
-        yield return new WaitForSeconds(0.5f);
-        imageGenerator.Generate(targetImagesCount, resultFolderPath);
     }
 }
