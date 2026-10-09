@@ -300,7 +300,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9245283, g: 0.8940014, b: 0.8940014, a: 1}
+  m_Color: {r: 1, g: 1, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -571,7 +571,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: v1.2.0
+  m_Text: v1.3.0
 --- !u!222 &520960860
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -762,6 +762,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 555564725}
   m_CullTransparentMesh: 0
+--- !u!114 &791512775 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6613252639478877620, guid: 88f8a56a61ee24abfa2507d23474e7c2,
+    type: 3}
+  m_PrefabInstance: {fileID: 1240582524}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &993147634
 GameObject:
   m_ObjectHideFlags: 0
@@ -1197,8 +1209,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 0.102, g: 0.102, b: 0.1333, a: 1}
   m_RaycastTarget: 1
@@ -1242,7 +1254,7 @@ MonoBehaviour:
   layerListContainer: {fileID: 206555687}
   addLayerButton: {fileID: 1145686306}
   resultFolderButton: {fileID: 1240582526}
-  resultFolderText: {fileID: 1598611342}
+  resultFolderText: {fileID: 791512775}
   generateButton: {fileID: 993147636}
   maxCountText: {fileID: 8915829434547914586}
   targetCountInput: {fileID: 1421422771}
@@ -1538,6 +1550,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Text
       value: Result folder
+      objectReference: {fileID: 0}
+    - target: {fileID: 6613252639478877620, guid: 88f8a56a61ee24abfa2507d23474e7c2,
+        type: 3}
+      propertyPath: m_Color.b
+      value: 
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
